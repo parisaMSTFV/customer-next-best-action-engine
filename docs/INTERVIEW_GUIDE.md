@@ -29,3 +29,11 @@ Synthetic data lets the generator retain counterfactual truth. The oracle shows 
 ## What changes in production?
 
 Replace synthetic score tables with governed model outputs, use real offer economics and redemption rules, add inventory and campaign-collision checks, calibrate treatment effects from randomized experiments, maintain a persistent holdout, monitor drift and policy value, and complete privacy, consent, fairness, and legal reviews.
+
+## What did the sensitivity analysis change?
+
+It showed that budget is not the only binding resource. In the committed simulation, value
+saturates above the base budget while broader channel capacity materially expands feasible value.
+The 3x3 economics grid also shows that margin assumptions have a larger effect than the small
+voucher-subsidy perturbations tested here. I would not generalize those magnitudes; the useful
+result is that the policy exposes where a recommendation changes and preserves matched constraints.

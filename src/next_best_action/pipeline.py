@@ -19,6 +19,7 @@ from next_best_action.evaluation import constraint_summary, policy_metrics
 from next_best_action.explain import add_reason_codes
 from next_best_action.policy import optimize_policy
 from next_best_action.reporting import write_reports
+from next_best_action.sensitivity import run_sensitivity
 from next_best_action.simulation import SyntheticBundle, generate_synthetic_bundle
 from next_best_action.timing import add_timing_status
 
@@ -92,7 +93,33 @@ def run_pipeline(
         "all_constraints_pass": bool(constraints["within_limit"].all()),
     }
     if write_outputs:
-        write_reports(project_root, comparison, engine, decisions, constraints, run_metadata)
+        sensitivity_summary, sensitivity_allocation = run_sensitivity(
+            frame,
+            bundle.evaluator_truth,
+            policy,
+            offers,
+        )
+        base_sensitivity = sensitivity_summary.loc[
+            (sensitivity_summary["dimension"] == "budget")
+            & (sensitivity_summary["budget_multiplier"] == 1.0)
+        ].iloc[0]
+        run_metadata["sensitivity_scenarios"] = int(len(sensitivity_summary))
+        run_metadata["base_assignment_change_rate"] = float(
+            base_sensitivity["assignment_change_rate_vs_base"]
+        )
+        run_metadata["all_sensitivity_constraints_pass"] = bool(
+            sensitivity_summary["all_constraints_pass"].all()
+        )
+        write_reports(
+            project_root,
+            comparison,
+            engine,
+            decisions,
+            constraints,
+            sensitivity_summary,
+            sensitivity_allocation,
+            run_metadata,
+        )
 
         data_dir = project_root / "data" / "generated"
         data_dir.mkdir(parents=True, exist_ok=True)

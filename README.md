@@ -128,6 +128,33 @@ The low voucher count is intentional rather than a reporting defect: under the c
 
 All configured constraints passed in the committed run.
 
+## Policy sensitivity and stress tests
+
+The committed sensitivity run evaluates 19 explicit scenarios using the same 3,000-customer
+synthetic universe. Budget and channel capacity are varied one at a time from 0.6x to 1.4x;
+expected order margin and voucher subsidy are crossed in a 3x3 economics grid. Every scenario
+uses the same deployable predicted-value objective, and hidden truth remains evaluation-only.
+
+| Operating change | Constrained / stress | Base | Expanded / favorable | Decision interpretation |
+|---|---:|---:|---:|---|
+| Total budget | 1,203.40 at 0.6x | 1,248.04 | 1,246.09 at 1.4x | More budget alone saturates once channel capacity binds |
+| Channel capacity | 1,016.87 at 0.6x | 1,248.04 | 1,388.43 at 1.4x | Capacity is the stronger constraint in this synthetic setup |
+| Margin / subsidy economics | 971.50 at 0.8x margin, 1.25x subsidy | 1,248.04 | 1,560.30 at 1.2x margin, 0.75x subsidy | Unit economics can change policy value more than budget |
+
+Values are synthetic true incremental net value observed after policy selection. They need not
+increase monotonically with a looser constraint because the engine optimizes predicted, not
+hidden true, value. The predicted objective is non-decreasing across the nested budget grid.
+
+The largest assignment change in the committed grid occurs at 0.6x channel capacity: 9.8% of
+customers change between an active action and no action, or between active actions. All 19
+scenarios satisfy the configured budget, channel, and one-action-per-customer constraints.
+
+![Policy sensitivity](reports/figures/policy_sensitivity.png)
+
+See the [decision summary](reports/sensitivity_summary.md),
+[scenario table](reports/sensitivity_summary.csv), and
+[action-mix table](reports/sensitivity_action_mix.csv).
+
 ## Explainable customer output
 
 The deployable decision artifact contains one row per customer with fields such as:
@@ -172,7 +199,7 @@ A dedicated leakage test changes the hidden counterfactual truth and verifies th
 ```text
 configs/                    offer economics, timing rules, budget, and capacities
 src/next_best_action/       simulation, contracts, timing, candidates, economics, policy, evaluation
-reports/                    reproducible metrics, samples, and figures
+reports/                    reproducible metrics, sensitivity tables, samples, and figures
 docs/                       architecture, contracts, policy, system card, interview guide
 tests/                      contract, timing, economics, constraint, leakage, and pipeline tests
 scripts/                    public-file sensitive-content scan
@@ -222,6 +249,8 @@ The full synthetic customer tables are regenerated locally. Public Git history c
 - [Data Provenance](DATA_PROVENANCE.md)
 - [Reproducible Run Summary](reports/run_summary.md)
 - [Policy Comparison](reports/policy_comparison.csv)
+- [Policy Sensitivity Summary](reports/sensitivity_summary.md)
+- [Sensitivity Scenario Table](reports/sensitivity_summary.csv)
 - [Decision Sample](reports/decision_sample.csv)
 
 ## Limitations
@@ -230,6 +259,7 @@ The full synthetic customer tables are regenerated locally. Public Git history c
 - The engine reproduces compatible upstream score contracts rather than running the earlier repositories as production services.
 - Treatment definitions are assumed stable and customer interference is absent.
 - Voucher economics simplify redemption, returns, supplier funding, tax, and long-term incentive habituation.
+- Sensitivity scenarios vary selected assumptions on fixed grids; they are not probability-weighted forecasts or confidence intervals.
 - Channel selection uses consent and engagement preference rather than a causal channel-treatment model.
 - Inventory, live pricing, campaign collisions, and real-time deliverability are not modeled.
 - Protected characteristics are deliberately excluded; production fairness assessment would still be required on governed real data.
