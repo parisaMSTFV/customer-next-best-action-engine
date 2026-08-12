@@ -1,0 +1,6 @@
+constraint,used,limit,within_limit
+total_budget,249.7422016428173,250.0,True
+channel_push,350.0,350.0,True
+channel_email,320.0,320.0,True
+channel_call,30.0,30.0,True
+one_action_per_customer,0.0,0.0,True

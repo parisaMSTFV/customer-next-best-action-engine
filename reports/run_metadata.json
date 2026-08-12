@@ -1,0 +1,13 @@
+{
+  "act_now_customers": 1331,
+  "all_constraints_pass": true,
+  "candidates": 2683,
+  "customers": 3000,
+  "deployable_frame_fingerprint": "d040ac55c08c889e",
+  "engine_contacts": 700,
+  "engine_regret_vs_oracle": 0.055985698135709,
+  "engine_true_incremental_net_value": 1248.0424084542744,
+  "oracle_true_incremental_net_value": 1322.0587929542721,
+  "score_date": "2026-08-01",
+  "seed": 42
+}

@@ -1,0 +1,26 @@
+offers:
+  reminder:
+    label: Reminder
+    discount_rate: 0.00
+    fixed_action_cost: 0.05
+    channel_family: owned
+  voucher_5:
+    label: 5% voucher
+    discount_rate: 0.05
+    fixed_action_cost: 0.08
+    channel_family: owned
+  voucher_10:
+    label: 10% voucher
+    discount_rate: 0.10
+    fixed_action_cost: 0.08
+    channel_family: owned
+  service_call:
+    label: Service call
+    discount_rate: 0.00
+    fixed_action_cost: 4.50
+    channel_family: call
+
+channel_cost:
+  push: 0.03
+  email: 0.06
+  call: 0.00

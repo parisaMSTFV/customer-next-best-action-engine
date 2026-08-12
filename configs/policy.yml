@@ -1,0 +1,27 @@
+seed: 42
+customers: 3000
+score_date: "2026-08-01"
+
+timing:
+  minimum_days_between_contacts: 7
+  max_contacts_30d: 3
+  act_now_window_progress: 0.75
+  act_now_purchase_probability: 0.65
+  act_now_churn_probability: 0.70
+  review_window_progress: 0.55
+  review_purchase_probability: 0.45
+  review_churn_probability: 0.50
+
+portfolio:
+  total_budget: 250.0
+  channel_capacity:
+    push: 350
+    email: 320
+    call: 30
+
+service_call:
+  eligible_tiers: [protect, grow]
+  minimum_churn_probability: 0.45
+
+uncertainty:
+  suppress_high_uncertainty_service_call: true
