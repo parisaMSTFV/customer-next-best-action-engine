@@ -1,6 +1,8 @@
 {
   "act_now_customers": 1331,
   "all_constraints_pass": true,
+  "all_sensitivity_constraints_pass": true,
+  "base_assignment_change_rate": 0.0,
   "candidates": 2683,
   "customers": 3000,
   "deployable_frame_fingerprint": "d040ac55c08c889e",
@@ -9,5 +11,6 @@
   "engine_true_incremental_net_value": 1248.0424084542744,
   "oracle_true_incremental_net_value": 1322.0587929542721,
   "score_date": "2026-08-01",
-  "seed": 42
+  "seed": 42,
+  "sensitivity_scenarios": 19
 }

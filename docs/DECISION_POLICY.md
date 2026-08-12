@@ -74,3 +74,16 @@ The deployable decision table records concise reason codes such as:
 - `positive_candidate_not_selected_under_portfolio_constraints`.
 
 Reason codes explain the policy path. They are not causal explanations of individual behavior.
+
+## 6. Sensitivity review
+
+The committed stress test varies budget, channel capacity, expected order margin, and voucher
+subsidy assumptions. Reviewers should inspect three outputs before approving an operating change:
+
+1. predicted and evaluator-only true value versus the matched reminder baseline;
+2. assignment change rate versus the base policy;
+3. budget, channel, and one-action-per-customer constraint status.
+
+The base synthetic run is more sensitive to channel capacity than to additional budget. This is
+configuration-specific evidence, not a general rule about CRM operations. The policy should be
+recomputed whenever its approved constraints or economics change.
