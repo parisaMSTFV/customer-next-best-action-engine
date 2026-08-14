@@ -27,10 +27,14 @@ def add_timing_status(frame: pd.DataFrame, policy: dict[str, Any]) -> pd.DataFra
         | (result["churn_probability"] >= float(cfg["act_now_churn_probability"]))
     ) & ~suppressed
     review = (
-        (result["window_progress"] >= float(cfg["review_window_progress"]))
-        | (result["purchase_readiness_30d"] >= float(cfg["review_purchase_probability"]))
-        | (result["churn_probability"] >= float(cfg["review_churn_probability"]))
-    ) & ~suppressed & ~act_now
+        (
+            (result["window_progress"] >= float(cfg["review_window_progress"]))
+            | (result["purchase_readiness_30d"] >= float(cfg["review_purchase_probability"]))
+            | (result["churn_probability"] >= float(cfg["review_churn_probability"]))
+        )
+        & ~suppressed
+        & ~act_now
+    )
 
     result["timing_status"] = np.select(
         [suppressed, act_now, review],

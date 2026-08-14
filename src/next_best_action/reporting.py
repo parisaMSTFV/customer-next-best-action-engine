@@ -123,9 +123,7 @@ def _write_operational_summary(
         "",
     ]
     for name, source in sorted(sources.items()):
-        lines.append(
-            f"- `{name}`: `{source['producer']}` / `{source['artifact_version']}`"
-        )
+        lines.append(f"- `{name}`: `{source['producer']}` / `{source['artifact_version']}`")
     lines.extend(
         [
             "",

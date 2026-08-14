@@ -91,8 +91,7 @@ def load_external_bundle(input_dir: str | Path) -> tuple[ExternalBundle, dict[st
         actual_checksum = _sha256(path)
         if actual_checksum != entry["sha256"].lower():
             raise ValueError(
-                f"Checksum mismatch for {name}: expected {entry['sha256']}, "
-                f"got {actual_checksum}"
+                f"Checksum mismatch for {name}: expected {entry['sha256']}, got {actual_checksum}"
             )
         frames[name] = pd.read_csv(path, dtype={"customer_id": "string"})
 

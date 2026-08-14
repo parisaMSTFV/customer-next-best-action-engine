@@ -109,9 +109,7 @@ def run_pipeline(
             "candidates": int(len(candidates)),
             "act_now_customers": int((frame["timing_status"] == "act_now").sum()),
             "engine_contacts": int(len(engine)),
-            "engine_predicted_incremental_net_value": float(
-                engine["predicted_net_value"].sum()
-            ),
+            "engine_predicted_incremental_net_value": float(engine["predicted_net_value"].sum()),
             "all_constraints_pass": bool(constraints["within_limit"].all()),
             "source_artifacts": source_artifacts,
         }

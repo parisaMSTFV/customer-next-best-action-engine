@@ -128,8 +128,7 @@ def validate_bundle(bundle: Any) -> None:
                     raise ValueError(f"{name}.{column} must be between -1 and 1")
         if name == "customer_state":
             invalid_channels = sorted(
-                set(frame["preferred_owned_channel"].astype(str))
-                - {"push", "email", "none"}
+                set(frame["preferred_owned_channel"].astype(str)) - {"push", "email", "none"}
             )
             if invalid_channels:
                 raise ValueError(f"customer_state contains invalid channels: {invalid_channels}")
