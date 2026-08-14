@@ -6,6 +6,23 @@ import numpy as np
 import pandas as pd
 
 ACTIONS = ("reminder", "voucher_5", "voucher_10", "service_call")
+CANDIDATE_COLUMNS = [
+    "customer_id",
+    "action",
+    "channel",
+    "recommended_category",
+    "category_probability",
+    "predicted_uplift",
+    "predicted_treated_probability",
+    "expected_cost",
+    "predicted_net_value",
+    "churn_probability",
+    "purchase_readiness_30d",
+    "predicted_clv_180d",
+    "investment_ceiling",
+    "segment_name",
+    "service_tier",
+]
 
 
 def _resolved_channel(row: pd.Series, action: str) -> str:
@@ -99,4 +116,9 @@ def build_candidates(
                 row["true_uplift"] = true_uplift
             rows.append(row)
 
+    if not rows:
+        columns = CANDIDATE_COLUMNS.copy()
+        if evaluator_truth is not None:
+            columns.extend(["true_net_value", "true_uplift"])
+        return pd.DataFrame(columns=columns)
     return pd.DataFrame(rows)

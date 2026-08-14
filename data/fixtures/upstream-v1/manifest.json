@@ -1,0 +1,43 @@
+{
+  "contract_version": "1.0",
+  "score_date": "2026-08-01",
+  "fixture": true,
+  "artifacts": {
+    "customer_state": {
+      "path": "customer_state.csv",
+      "producer": "crm-feature-contract",
+      "artifact_version": "fixture-v1",
+      "sha256": "9ae77d908daff693ef79b29fee1431063b37e7f4ff380ac4f08fbfc7e5e15ead"
+    },
+    "segmentation_scores": {
+      "path": "segmentation_scores.csv",
+      "producer": "customer-segmentation-decision-system",
+      "artifact_version": "fixture-v1",
+      "sha256": "e150f4f3f71e3b62253b486b677994cfcb79f1ca84f3ec9b6346b643550b6811"
+    },
+    "clv_scores": {
+      "path": "clv_scores.csv",
+      "producer": "customer-lifetime-value-decision-system",
+      "artifact_version": "fixture-v1",
+      "sha256": "bd0b74548f2e27c931a8602339ec2cc8f196bef75f46b7de0066b0dd5f229172"
+    },
+    "churn_scores": {
+      "path": "churn_scores.csv",
+      "producer": "customer-churn-personalized-window",
+      "artifact_version": "fixture-v1",
+      "sha256": "64909c9300697cd2b8b818cccc57126770c08ffb38e026c3762021570e0c61be"
+    },
+    "purchase_scores": {
+      "path": "purchase_scores.csv",
+      "producer": "next-purchase-recommendation",
+      "artifact_version": "fixture-v1",
+      "sha256": "c2430addcd22723dd5c7d75138c9b9985f8a1b8a50adb62acbdd19b46ffb328b"
+    },
+    "uplift_scores": {
+      "path": "uplift_scores.csv",
+      "producer": "retention-treatment-uplift",
+      "artifact_version": "fixture-v1",
+      "sha256": "0f164b7daa96b60d8032c4605fc3728d82424b8240fd06c780d5a7ae3bc7110c"
+    }
+  }
+}

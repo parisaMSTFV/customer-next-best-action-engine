@@ -1,10 +1,20 @@
 # Data Provenance
 
-Every customer, score, offer, constraint, cost, and outcome in this repository is synthetic and generated from scratch by `src/next_best_action/simulation.py`.
+The repository supports two explicitly separated input modes.
+
+## External artifact mode
+
+The engine can consume six standardized score exports through a versioned, checksummed manifest. The loader validates provenance metadata, file integrity, schema, customer keys, probabilities, booleans, and score date before building a decision frame. External runs do not load evaluator truth and do not report observed causal value.
+
+The committed `data/fixtures/upstream-v1/` bundle is an illustrative integration fixture, not customer data or an observed campaign result.
+
+## Synthetic benchmark mode
+
+Every customer, score, offer, constraint, cost, and outcome in the committed benchmark is generated from scratch by `src/next_best_action/simulation.py`.
 
 The project does not copy row-level data from the upstream portfolio repositories. Those repositories were built with separate synthetic customer universes, so joining their customer IDs would create a false integration. Instead, this project creates one new customer universe and reproduces compatible score contracts for segmentation, CLV, churn timing, next-purchase relevance, and treatment uplift.
 
-## What is generated
+### What is generated
 
 - anonymous customer IDs prefixed with `SYN-`;
 - behavioral segment assignments;
@@ -15,7 +25,7 @@ The project does not copy row-level data from the upstream portfolio repositorie
 - consent, contact-frequency, channel, and offer-cost inputs;
 - hidden synthetic counterfactual truth for policy evaluation only.
 
-## Evaluation boundary
+### Evaluation boundary
 
 `evaluator_truth.csv` contains hidden synthetic action effects used to calculate oracle value and policy regret. It is never merged into the deployable decision frame and is written only under `data/generated/`, which is excluded from version control.
 
@@ -23,4 +33,4 @@ A leakage test mutates the hidden truth and confirms that the selected deployabl
 
 ## What is not included
 
-No real customer, transaction, company schema, query, server, dashboard, credential, internal threshold, campaign result, or proprietary business rule is included. All public metrics describe this controlled synthetic run only.
+No real customer, transaction, company schema, query, server, dashboard, credential, internal threshold, campaign result, or proprietary business rule is included. All committed benchmark metrics describe the controlled synthetic run only.

@@ -5,6 +5,26 @@ from typing import Any
 import pandas as pd
 
 
+def predicted_policy_metrics(
+    name: str,
+    assignments: pd.DataFrame,
+    total_customers: int,
+) -> dict[str, float | int | str]:
+    """Summarize a deployable policy when counterfactual truth is unavailable."""
+    contacts = len(assignments)
+    budget_used = float(assignments["expected_cost"].sum()) if contacts else 0.0
+    predicted = float(assignments["predicted_net_value"].sum()) if contacts else 0.0
+    return {
+        "policy": name,
+        "customers_contacted": contacts,
+        "contact_rate": contacts / total_customers if total_customers else 0.0,
+        "no_action_rate": 1 - contacts / total_customers if total_customers else 1.0,
+        "budget_used": budget_used,
+        "predicted_net_value": predicted,
+        "predicted_value_per_contact": predicted / contacts if contacts else 0.0,
+    }
+
+
 def policy_metrics(
     name: str,
     assignments: pd.DataFrame,

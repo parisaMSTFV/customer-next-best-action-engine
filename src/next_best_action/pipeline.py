@@ -15,12 +15,17 @@ from next_best_action.baselines import (
 from next_best_action.candidates import build_candidates
 from next_best_action.config import load_configs
 from next_best_action.contracts import build_decision_frame
-from next_best_action.evaluation import constraint_summary, policy_metrics
+from next_best_action.evaluation import (
+    constraint_summary,
+    policy_metrics,
+    predicted_policy_metrics,
+)
 from next_best_action.explain import add_reason_codes
+from next_best_action.inputs import load_external_bundle
 from next_best_action.policy import optimize_policy
-from next_best_action.reporting import write_reports
+from next_best_action.reporting import write_operational_reports, write_reports
 from next_best_action.sensitivity import run_sensitivity
-from next_best_action.simulation import SyntheticBundle, generate_synthetic_bundle
+from next_best_action.simulation import generate_synthetic_bundle
 from next_best_action.timing import add_timing_status
 
 
@@ -34,21 +39,34 @@ def run_pipeline(
     customers: int | None = None,
     seed: int | None = None,
     write_outputs: bool = True,
+    input_dir: Path | None = None,
+    output_dir: Path | None = None,
 ) -> dict[str, Any]:
-    """Run the complete synthetic next-best-action workflow."""
+    """Run the engine on synthetic data or versioned upstream artifacts."""
     policy, offers = load_configs(project_root)
-    n_customers = int(customers if customers is not None else policy["customers"])
-    run_seed = int(seed if seed is not None else policy["seed"])
+    external_manifest: dict[str, Any] | None = None
+    if input_dir is None:
+        n_customers = int(customers if customers is not None else policy["customers"])
+        run_seed = int(seed if seed is not None else policy["seed"])
+        bundle = generate_synthetic_bundle(
+            n_customers=n_customers,
+            seed=run_seed,
+            score_date=str(policy["score_date"]),
+        )
+        evaluator_truth = bundle.evaluator_truth
+    else:
+        if customers is not None or seed is not None:
+            raise ValueError("customers and seed cannot be used with input_dir")
+        bundle, external_manifest = load_external_bundle(input_dir)
+        n_customers = len(bundle.customer_state)
+        run_seed = None
+        evaluator_truth = None
 
-    bundle: SyntheticBundle = generate_synthetic_bundle(
-        n_customers=n_customers, seed=run_seed, score_date=str(policy["score_date"])
-    )
     frame = build_decision_frame(bundle)
     frame = add_timing_status(frame, policy)
-    candidates = build_candidates(frame, policy, offers, evaluator_truth=bundle.evaluator_truth)
+    candidates = build_candidates(frame, policy, offers, evaluator_truth=evaluator_truth)
 
     engine = optimize_policy(candidates, policy, value_column="predicted_net_value")
-    oracle = optimize_policy(candidates, policy, value_column="true_net_value")
     baselines = {
         "risk_only_reminder": risk_only_reminder(candidates, policy),
         "uplift_reminder_only": optimize_policy(
@@ -59,6 +77,57 @@ def run_pipeline(
         "segment_rules": segment_rule_policy(candidates, policy),
     }
 
+    constraints = constraint_summary(engine, policy)
+    decisions = add_reason_codes(frame, engine, candidates)
+    if evaluator_truth is None:
+        comparison = pd.DataFrame(
+            [
+                predicted_policy_metrics("do_nothing", candidates.iloc[0:0], n_customers),
+                *[
+                    predicted_policy_metrics(name, assignments, n_customers)
+                    for name, assignments in baselines.items()
+                ],
+                predicted_policy_metrics("next_best_action_engine", engine, n_customers),
+            ]
+        )
+        source_artifacts = {
+            name: {
+                "producer": entry["producer"],
+                "artifact_version": entry["artifact_version"],
+                "sha256": entry["sha256"],
+            }
+            for name, entry in external_manifest["artifacts"].items()
+        }
+        run_metadata: dict[str, object] = {
+            "input_mode": "external",
+            "input_contract_version": external_manifest["contract_version"],
+            "customers": n_customers,
+            "score_date": str(frame["score_date"].iloc[0]),
+            "deployable_frame_fingerprint": _fingerprint(
+                frame.drop(columns=["timing_status", "next_review_days"])
+            ),
+            "candidates": int(len(candidates)),
+            "act_now_customers": int((frame["timing_status"] == "act_now").sum()),
+            "engine_contacts": int(len(engine)),
+            "engine_predicted_incremental_net_value": float(
+                engine["predicted_net_value"].sum()
+            ),
+            "all_constraints_pass": bool(constraints["within_limit"].all()),
+            "source_artifacts": source_artifacts,
+        }
+        if write_outputs:
+            target = output_dir or project_root / "artifacts" / "external_run"
+            write_operational_reports(
+                target,
+                comparison,
+                engine,
+                decisions,
+                constraints,
+                run_metadata,
+            )
+        return run_metadata
+
+    oracle = optimize_policy(candidates, policy, value_column="true_net_value")
     oracle_true_value = float(oracle["true_net_value"].sum())
     metrics = [
         policy_metrics("do_nothing", candidates.iloc[0:0], n_customers, oracle_true_value),
@@ -70,9 +139,6 @@ def run_pipeline(
         policy_metrics("synthetic_oracle", oracle, n_customers, oracle_true_value),
     ]
     comparison = pd.DataFrame(metrics)
-    constraints = constraint_summary(engine, policy)
-    decisions = add_reason_codes(frame, engine, candidates)
-
     run_metadata: dict[str, object] = {
         "seed": run_seed,
         "customers": n_customers,

@@ -1,0 +1,9 @@
+customer_id,expected_order_value,margin_rate,expected_order_margin,email_consent,push_consent,call_consent,preferred_owned_channel,days_since_last_contact,contact_count_30d
+C001,150.00,0.30,45.00,true,true,true,push,20,1
+C002,200.00,0.25,50.00,true,false,true,email,45,0
+C003,80.00,0.25,20.00,true,true,false,push,12,1
+C004,120.00,0.20,24.00,false,false,false,none,60,0
+C005,90.00,0.15,13.50,true,true,false,email,3,2
+C006,160.00,0.28,44.80,true,false,true,email,25,1
+C007,70.00,0.20,14.00,true,true,false,push,31,0
+C008,110.00,0.22,24.20,true,false,false,email,15,1

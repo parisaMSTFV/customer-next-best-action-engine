@@ -1,8 +1,8 @@
 # Upstream Contracts
 
-The engine is designed around outputs already represented in the portfolio. It does not import model packages or join row-level files from those repositories because each project has an independent synthetic customer universe.
+The engine consumes six standardized CSV artifacts through contract version `1.0`. A JSON manifest records each file's producer, artifact version, relative path, and SHA-256 checksum. The loader rejects missing files, changed bytes, unsupported contracts, duplicate or mismatched customer keys, invalid booleans, out-of-range probabilities, and inconsistent score dates before policy logic runs.
 
-The integration pattern is therefore **contract reuse, not synthetic-ID reuse**.
+This is a file boundary, not a package dependency: upstream systems export governed scores, while this repository owns action economics, guardrails, and portfolio optimization. The committed fixture demonstrates the executable boundary; it does not claim that independently generated demo customer IDs can be joined.
 
 | Portfolio repository | Capability reused | Harmonized fields used here |
 |---|---|---|
@@ -13,11 +13,49 @@ The integration pattern is therefore **contract reuse, not synthetic-ID reuse**.
 | `retention-treatment-uplift` | Heterogeneous treatment response and the principle of comparing action value to control | action-level uplift scores for reminder, voucher, and service actions |
 | `marketing-budget-allocation-optimizer` | Constrained optimization discipline | shared budget and capacity constraints; no customer-level scores are imported |
 
+## Manifest
+
+```json
+{
+  "contract_version": "1.0",
+  "score_date": "2026-08-01",
+  "artifacts": {
+    "clv_scores": {
+      "path": "clv_scores.csv",
+      "producer": "customer-lifetime-value-decision-system",
+      "artifact_version": "2026-08-01.v1",
+      "sha256": "<64 lowercase hexadecimal characters>"
+    }
+  }
+}
+```
+
+The complete manifest must define exactly these artifacts:
+
+- `customer_state`
+- `segmentation_scores`
+- `clv_scores`
+- `churn_scores`
+- `purchase_scores`
+- `uplift_scores`
+
+All six files must contain the same unique `customer_id` universe. `churn_scores.score_date` must contain one date equal to the manifest's `score_date`. See [`data/fixtures/upstream-v1`](../data/fixtures/upstream-v1) for the runnable shape and [`contracts.py`](../src/next_best_action/contracts.py) for exact required columns.
+
+## Execute an artifact bundle
+
+```bash
+next-best-action --project-root . \
+  --input-dir /path/to/versioned-export \
+  --output-dir artifacts/external-run
+```
+
+External mode never expects `evaluator_truth.csv`. It writes `decisions.csv`, constraint utilization, action allocation, source-version metadata, and predicted policy comparisons. Observed incremental value still requires a randomized holdout.
+
 ## Why the contracts are harmonized
 
-The existing causal project evaluates reminder, voucher, and service-call treatments on a 60-day contribution outcome. This repository needs a common action-value horizon and an explicit voucher subsidy calculation, so the synthetic integration layer exposes action-level purchase-probability uplift and recomputes economics consistently for every candidate.
+The existing causal project evaluates reminder, voucher, and service-call treatments on a 60-day contribution outcome. This repository needs a common action-value horizon and an explicit voucher subsidy calculation, so the export adapter must expose action-level purchase-probability uplift and the engine recomputes economics consistently for every candidate.
 
-That is an intentional integration contract, not a claim that the upstream repository currently exports the exact same columns.
+That is an intentional integration contract, not a claim that every upstream repository already emits this exact export without an adapter.
 
 ## Systems not directly used in version 1
 

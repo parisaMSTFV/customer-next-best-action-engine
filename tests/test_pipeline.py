@@ -8,3 +8,13 @@ def test_pipeline_smoke(project_root):
     assert metadata["oracle_true_incremental_net_value"] >= metadata[
         "engine_true_incremental_net_value"
     ] - 1e-9
+
+
+def test_pipeline_rejects_synthetic_options_with_external_inputs(project_root):
+    fixture = project_root / "data" / "fixtures" / "upstream-v1"
+    try:
+        run_pipeline(project_root, customers=10, input_dir=fixture, write_outputs=False)
+    except ValueError as exc:
+        assert "customers and seed" in str(exc)
+    else:
+        raise AssertionError("Expected external-input option validation")

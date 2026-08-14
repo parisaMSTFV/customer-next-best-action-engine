@@ -8,6 +8,48 @@ import numpy as np
 import pandas as pd
 
 
+def write_operational_reports(
+    output_dir: str | Path,
+    policy_comparison: pd.DataFrame,
+    engine_assignments: pd.DataFrame,
+    decisions: pd.DataFrame,
+    constraints: pd.DataFrame,
+    run_metadata: dict[str, object],
+) -> None:
+    """Write deployable outputs without requiring hidden counterfactual truth."""
+    reports = Path(output_dir)
+    figures = reports / "figures"
+    reports.mkdir(parents=True, exist_ok=True)
+    figures.mkdir(parents=True, exist_ok=True)
+
+    policy_comparison.to_csv(reports / "predicted_policy_comparison.csv", index=False)
+    constraints.to_csv(reports / "constraint_summary.csv", index=False)
+    decisions.to_csv(reports / "decisions.csv", index=False)
+    allocation = (
+        engine_assignments.groupby(["action", "channel"], observed=True)
+        .agg(
+            customers=("customer_id", "size"),
+            predicted_net_value=("predicted_net_value", "sum"),
+            expected_cost=("expected_cost", "sum"),
+        )
+        .reset_index()
+    )
+    allocation.to_csv(reports / "action_allocation.csv", index=False)
+    with (reports / "run_metadata.json").open("w", encoding="utf-8") as handle:
+        json.dump(run_metadata, handle, indent=2, sort_keys=True)
+    _write_operational_summary(
+        reports / "run_summary.md",
+        policy_comparison,
+        constraints,
+        run_metadata,
+    )
+    _plot_predicted_policy_value(
+        policy_comparison,
+        figures / "predicted_policy_value.png",
+    )
+    _plot_action_mix(engine_assignments, figures / "action_mix.png")
+
+
 def write_reports(
     project_root: Path,
     policy_comparison: pd.DataFrame,
@@ -47,6 +89,54 @@ def write_reports(
     _plot_policy_value(policy_comparison, figures / "policy_value_comparison.png")
     _plot_action_mix(engine_assignments, figures / "action_mix.png")
     _plot_sensitivity(sensitivity_summary, figures / "policy_sensitivity.png")
+
+
+def _write_operational_summary(
+    path: Path,
+    comparison: pd.DataFrame,
+    constraints: pd.DataFrame,
+    metadata: dict[str, object],
+) -> None:
+    engine = comparison.loc[comparison["policy"] == "next_best_action_engine"].iloc[0]
+    baseline_rows = comparison.loc[comparison["policy"] != "next_best_action_engine"]
+    best_baseline = baseline_rows.sort_values("predicted_net_value", ascending=False).iloc[0]
+    sources = metadata.get("source_artifacts", {})
+    lines = [
+        "# Operational Next-Best-Action Run",
+        "",
+        f"- Input contract: `{metadata['input_contract_version']}`",
+        f"- Customers scored: **{metadata['customers']:,}**",
+        f"- Customers selected: **{int(engine['customers_contacted']):,}**",
+        f"- Expected action cost: **{float(engine['budget_used']):,.2f}**",
+        f"- Predicted incremental net value: **{float(engine['predicted_net_value']):,.2f}**",
+        f"- All portfolio constraints passed: **{bool(constraints['within_limit'].all())}**",
+        "",
+        "## Decision comparison",
+        "",
+        (
+            f"The strongest configured baseline by predicted value is "
+            f"`{best_baseline['policy']}` at "
+            f"**{float(best_baseline['predicted_net_value']):,.2f}**."
+        ),
+        "",
+        "## Versioned sources",
+        "",
+    ]
+    for name, source in sorted(sources.items()):
+        lines.append(
+            f"- `{name}`: `{source['producer']}` / `{source['artifact_version']}`"
+        )
+    lines.extend(
+        [
+            "",
+            "## Interpretation boundary",
+            "",
+            "These values are model-based expectations used for policy selection. "
+            "They are not observed incremental impact. Validate policy value with a "
+            "randomized holdout before deployment or scaling.",
+        ]
+    )
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def _plot_sensitivity(frame: pd.DataFrame, path: Path) -> None:
@@ -190,6 +280,21 @@ def _plot_policy_value(frame: pd.DataFrame, path: Path) -> None:
     ax.set_title("Policy value under hidden synthetic counterfactual truth")
     fig.tight_layout()
     fig.savefig(path, dpi=150)
+    plt.close(fig)
+
+
+def _plot_predicted_policy_value(frame: pd.DataFrame, path: Path) -> None:
+    values = frame["predicted_net_value"].to_numpy(dtype=float)
+    labels = [str(value).replace("_", " ").title() for value in frame["policy"]]
+    positions = np.arange(len(values))
+    fig, ax = plt.subplots(figsize=(9.5, 5.0))
+    bars = ax.bar(positions, values, color="#2A9D8F")
+    ax.set_xticks(positions, labels, rotation=25, ha="right")
+    ax.bar_label(bars, fmt="%.1f", padding=3, fontsize=8)
+    ax.set_ylabel("Predicted incremental net value")
+    ax.set_title("Policy comparison on versioned input artifacts")
+    fig.tight_layout()
+    fig.savefig(path, dpi=150, bbox_inches="tight", facecolor="white")
     plt.close(fig)
 
 

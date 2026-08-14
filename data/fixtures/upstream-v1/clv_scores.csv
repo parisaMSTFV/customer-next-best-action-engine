@@ -1,0 +1,9 @@
+customer_id,predicted_clv_180d,active_probability_180d,clv_lower_80,clv_upper_80,service_tier,investment_ceiling,high_uncertainty
+C001,420.00,0.82,340.00,500.00,protect,20.00,false
+C002,510.00,0.90,430.00,590.00,protect,24.00,false
+C003,230.00,0.72,170.00,290.00,grow,13.60,false
+C004,85.00,0.28,35.00,135.00,low_touch,2.00,true
+C005,190.00,0.64,120.00,260.00,nurture,7.00,false
+C006,460.00,0.70,250.00,670.00,grow,14.00,true
+C007,120.00,0.55,80.00,160.00,nurture,6.40,false
+C008,270.00,0.76,205.00,335.00,grow,14.00,false
