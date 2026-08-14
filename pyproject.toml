@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "customer-next-best-action-engine"
-version = "0.1.0"
-description = "Synthetic next-best-action orchestration across customer value, timing, relevance, uplift, and constraints"
+version = "0.2.0"
+description = "Next-best-action orchestration across versioned customer scores, action economics, and portfolio constraints"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }

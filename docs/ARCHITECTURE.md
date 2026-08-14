@@ -1,41 +1,22 @@
 # Architecture
 
-```text
-Unified synthetic customer universe
-        |
-        +--> segmentation contract ---------+
-        +--> CLV contract ------------------+
-        +--> churn timing contract ---------+--> decision frame
-        +--> next-purchase contract --------+
-        +--> uplift contract ---------------+
-                                              |
-                                              v
-                                      timing guardrails
-                                              |
-                                              v
-                                      candidate actions
-                                              |
-                         +--------------------+--------------------+
-                         |                                         |
-                         v                                         v
-                  action economics                         eligibility checks
-                         |                                         |
-                         +--------------------+--------------------+
-                                              |
-                                              v
-                                    constrained optimizer
-                                              |
-                                              v
-                                  explainable customer policy
-                                              |
-                                              v
-                               hidden-truth policy evaluation
+```mermaid
+flowchart TD
+    A["Versioned score artifacts"] --> C["Manifest + contract validation"]
+    B["Synthetic benchmark"] --> C
+    C --> D["Unified decision frame"]
+    D --> E["Timing + eligibility + economics"]
+    E --> F["Constrained optimizer"]
+    F --> G["Explainable customer policy"]
+    B -. "evaluation only" .-> H["Hidden counterfactual truth"]
+    G --> H
 ```
 
 ## Module responsibilities
 
 - `simulation.py`: clean-room unified synthetic universe and hidden evaluator truth.
-- `contracts.py`: schema, key, and leakage-boundary validation.
+- `inputs.py`: manifest, checksum, path, and external-artifact loading.
+- `contracts.py`: schema, value, key, and leakage-boundary validation.
 - `timing.py`: contact-frequency and personalized purchase-window routing.
 - `candidates.py`: eligible customer-action rows and comparable economics.
 - `policy.py`: mixed-integer portfolio optimization and constrained greedy baselines.
@@ -47,6 +28,6 @@ Unified synthetic customer universe
 
 ## Separation of concerns
 
-The engine does not retrain CLV, churn, recommendation, or causal models. Those are upstream analytical responsibilities. The engine consumes their score contracts, applies operating rules, compares actions economically, and solves the portfolio decision.
+The engine does not retrain CLV, churn, recommendation, or causal models. Those are upstream analytical responsibilities. External mode consumes their standardized, versioned score exports; benchmark mode generates a unified synthetic universe for counterfactual evaluation. Both paths apply the same operating rules and optimizer.
 
 This separation keeps the capstone from becoming a second copy of every earlier project.

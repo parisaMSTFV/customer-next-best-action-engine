@@ -182,9 +182,11 @@ def generate_synthetic_bundle(
     clv_lower = np.clip(predicted_clv * (1 - uncertainty_width / 2), 0, None)
     clv_upper = predicted_clv * (1 + uncertainty_width / 2)
     service_tier = _rank_tiers(predicted_clv)
-    tier_caps = pd.Series(service_tier).map(
-        {"protect": 24.0, "grow": 14.0, "nurture": 7.0, "low_touch": 2.0}
-    ).to_numpy()
+    tier_caps = (
+        pd.Series(service_tier)
+        .map({"protect": 24.0, "grow": 14.0, "nurture": 7.0, "low_touch": 2.0})
+        .to_numpy()
+    )
     investment_ceiling = np.minimum(0.08 * clv_lower, tier_caps)
     high_uncertainty = ((clv_upper - clv_lower) / np.maximum(predicted_clv, 1)) > 0.70
 

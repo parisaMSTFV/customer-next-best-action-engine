@@ -1,14 +1,37 @@
 # Customer Next Best Action Engine
 
 [![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12-3776AB)](https://www.python.org/)
-[![Data](https://img.shields.io/badge/data-100%25%20synthetic-0F766E)](DATA_PROVENANCE.md)
+[![Input](https://img.shields.io/badge/input-versioned%20upstream%20contract-0F766E)](docs/UPSTREAM_CONTRACTS.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-16324F.svg)](LICENSE)
 
-A reproducible customer decisioning system that combines **customer value, personalized churn timing, purchase readiness, category relevance, treatment uplift, offer economics, and portfolio constraints** to decide who should receive which action now, and who should receive no action.
+Turn customer value, churn timing, purchase readiness, category relevance, treatment uplift, and offer economics into one constrained action policy. The engine accepts versioned upstream score artifacts, verifies their checksums and customer keys, and decides who should receive which action now—or no action.
 
-This repository is the orchestration layer of a broader customer-analytics portfolio. It does not retrain every upstream model inside one monolith. Instead, it creates one clean synthetic customer universe, reproduces compatible score contracts, and solves the final operating decision.
+## Decision snapshot
 
-> All customers, scores, offer costs, constraints, counterfactual outcomes, and reported results are synthetic. They validate the workflow under a controlled setup and are not claims about production performance.
+| Committed benchmark | Result |
+|---|---:|
+| Customers scored | 3,000 |
+| Customers selected | 700 |
+| Incremental net value vs strongest non-oracle baseline | +15.4% |
+| Regret vs synthetic oracle | 5.6% |
+| Constraint violations | 0 |
+
+![Policy value comparison](reports/figures/policy_value_comparison.png)
+
+The table is a controlled synthetic benchmark. External-input runs deliberately report predicted policy value and constraints—not synthetic oracle metrics or causal impact claims.
+
+## Run it
+
+Validate the real integration boundary with the committed eight-customer contract fixture:
+
+```bash
+python -m pip install -e ".[dev]"
+next-best-action --project-root . \
+  --input-dir data/fixtures/upstream-v1 \
+  --output-dir artifacts/external-run
+```
+
+The output contains a full customer decision file, source versions, checksums, constraint utilization, action allocation, and a predicted-value comparison. See [Upstream Contracts](docs/UPSTREAM_CONTRACTS.md) before mapping model exports.
 
 ## The decision
 
@@ -26,7 +49,7 @@ The final decision can explicitly be **no action**. A high churn score, high CLV
 
 The portfolio already contains separate systems for customer segmentation, CLV, churn timing, next-purchase recommendation, causal treatment uplift, and constrained resource allocation. Those projects answer different statistical questions and use separate synthetic customer universes.
 
-This repository therefore uses **contract reuse rather than synthetic-ID reuse**:
+This repository therefore separates two paths: a versioned artifact loader for integration and a clean-room synthetic benchmark for counterfactual evaluation. It never joins unrelated customer IDs across portfolio demos.
 
 ```mermaid
 flowchart TD
@@ -99,8 +122,6 @@ The committed run uses seed `42` and 3,000 synthetic customers. Hidden counterfa
 | Synthetic oracle | 700 | 1,322.06 | 0.0% |
 
 The engine produced **15.4% more synthetic true incremental net value than the strongest non-oracle baseline**, the uplift-ranked reminder-only policy. This result is specific to the synthetic generator and fixed configuration.
-
-![Policy value comparison](reports/figures/policy_value_comparison.png)
 
 ### Selected action mix
 
@@ -198,7 +219,8 @@ A dedicated leakage test changes the hidden counterfactual truth and verifies th
 
 ```text
 configs/                    offer economics, timing rules, budget, and capacities
-src/next_best_action/       simulation, contracts, timing, candidates, economics, policy, evaluation
+src/next_best_action/       input loader, contracts, timing, candidates, economics, policy, evaluation
+data/fixtures/upstream-v1/  checksummed integration-contract fixture
 reports/                    reproducible metrics, sensitivity tables, samples, and figures
 docs/                       architecture, contracts, policy, system card, interview guide
 tests/                      contract, timing, economics, constraint, leakage, and pipeline tests
@@ -229,14 +251,14 @@ source .venv/bin/activate
 python -m pip install -e ".[dev]"
 ```
 
-Run the full workflow and checks:
+Run the synthetic benchmark and all checks:
 
 ```bash
 make run
 make check
 ```
 
-The full synthetic customer tables are regenerated locally. Public Git history contains aggregate reports and a small deployable decision sample, not the evaluator truth table.
+The full synthetic customer tables are regenerated locally. Aggregate benchmark reports and a small deployable decision sample are committed; evaluator truth remains excluded.
 
 ## Documentation
 
@@ -255,8 +277,8 @@ The full synthetic customer tables are regenerated locally. Public Git history c
 
 ## Limitations
 
-- All behavior and treatment effects are synthetic.
-- The engine reproduces compatible upstream score contracts rather than running the earlier repositories as production services.
+- The committed benchmark behavior, treatment effects, and outcome metrics are synthetic.
+- External mode consumes standardized exports; it does not run or retrain upstream model packages.
 - Treatment definitions are assumed stable and customer interference is absent.
 - Voucher economics simplify redemption, returns, supplier funding, tax, and long-term incentive habituation.
 - Sensitivity scenarios vary selected assumptions on fixed grids; they are not probability-weighted forecasts or confidence intervals.

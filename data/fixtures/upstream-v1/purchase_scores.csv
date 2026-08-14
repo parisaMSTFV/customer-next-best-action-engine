@@ -1,0 +1,9 @@
+customer_id,recommended_category,category_probability,purchase_readiness_30d,expected_category_margin
+C001,Electronics,0.81,0.42,48.00
+C002,Home,0.74,0.71,52.00
+C003,Beauty,0.86,0.76,22.00
+C004,Grocery,0.62,0.18,12.00
+C005,Fashion,0.78,0.69,14.00
+C006,Electronics,0.69,0.37,46.00
+C007,Sports,0.55,0.29,15.00
+C008,Home,0.72,0.52,26.00
