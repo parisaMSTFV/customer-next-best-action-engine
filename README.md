@@ -258,7 +258,10 @@ make run
 make check
 ```
 
-The full synthetic customer tables are regenerated locally. Aggregate benchmark reports and a small deployable decision sample are committed; evaluator truth remains excluded.
+`make run` writes the local reproduction to `local-runs/latest`, so a normal run does not
+rewrite the committed evidence. The full synthetic customer tables are regenerated locally.
+Aggregate benchmark reports and a small deployable decision sample are committed; evaluator
+truth remains excluded.
 
 ## Documentation
 

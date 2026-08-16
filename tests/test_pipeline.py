@@ -19,3 +19,11 @@ def test_pipeline_rejects_synthetic_options_with_external_inputs(project_root):
         assert "customers and seed" in str(exc)
     else:
         raise AssertionError("Expected external-input option validation")
+
+
+def test_synthetic_output_can_be_separated_from_repository(project_root, tmp_path):
+    output = tmp_path / "run"
+    run_pipeline(project_root, customers=350, seed=11, output_dir=output)
+
+    assert (output / "reports" / "run_summary.md").exists()
+    assert (output / "data" / "generated" / "customer_state.csv").exists()

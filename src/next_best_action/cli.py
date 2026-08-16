@@ -21,7 +21,7 @@ def main() -> None:
         "--output-dir",
         type=Path,
         default=None,
-        help="Output directory for an external-input run",
+        help="Output root for generated data and reports in either run mode",
     )
     args = parser.parse_args()
     if args.input_dir is not None and (args.customers is not None or args.seed is not None):
