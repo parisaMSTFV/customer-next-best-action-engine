@@ -157,6 +157,7 @@ def run_pipeline(
         "all_constraints_pass": bool(constraints["within_limit"].all()),
     }
     if write_outputs:
+        target_root = output_dir or project_root
         sensitivity_summary, sensitivity_allocation = run_sensitivity(
             frame,
             bundle.evaluator_truth,
@@ -175,7 +176,7 @@ def run_pipeline(
             sensitivity_summary["all_constraints_pass"].all()
         )
         write_reports(
-            project_root,
+            target_root,
             comparison,
             engine,
             decisions,
@@ -185,7 +186,7 @@ def run_pipeline(
             run_metadata,
         )
 
-        data_dir = project_root / "data" / "generated"
+        data_dir = target_root / "data" / "generated"
         data_dir.mkdir(parents=True, exist_ok=True)
         bundle.customer_state.to_csv(data_dir / "customer_state.csv", index=False)
         bundle.segmentation_scores.to_csv(data_dir / "segmentation_scores.csv", index=False)

@@ -6,7 +6,7 @@ install:
 	$(PYTHON) -m pip install -e ".[dev]"
 
 run:
-	$(PYTHON) -m next_best_action --project-root .
+	$(PYTHON) -m next_best_action --project-root . --output-dir local-runs/latest
 
 integration:
 	$(PYTHON) -m next_best_action --project-root . --input-dir data/fixtures/upstream-v1 --output-dir artifacts/external-fixture

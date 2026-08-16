@@ -9,6 +9,7 @@ __pycache__/
 .env
 .env.*
 artifacts/
+local-runs/
 
 # Full synthetic row-level data is reproducible and intentionally not committed.
 data/generated/*
