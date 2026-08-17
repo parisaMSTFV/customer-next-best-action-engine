@@ -5,6 +5,7 @@ def test_pipeline_smoke(project_root):
     metadata = run_pipeline(project_root, customers=350, seed=11, write_outputs=False)
     assert metadata["customers"] == 350
     assert metadata["all_constraints_pass"] is True
+    assert metadata["all_eligibility_guardrails_pass"] is True
     assert (
         metadata["oracle_true_incremental_net_value"]
         >= metadata["engine_true_incremental_net_value"] - 1e-9
@@ -26,4 +27,5 @@ def test_synthetic_output_can_be_separated_from_repository(project_root, tmp_pat
     run_pipeline(project_root, customers=350, seed=11, output_dir=output)
 
     assert (output / "reports" / "run_summary.md").exists()
+    assert (output / "reports" / "eligibility_audit.csv").exists()
     assert (output / "data" / "generated" / "customer_state.csv").exists()

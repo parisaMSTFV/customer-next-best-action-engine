@@ -31,9 +31,13 @@ jobs:
       - name: Check public files
         run: python scripts/check_sensitive.py
       - name: Smoke test
-        run: python -m next_best_action --project-root . --customers 500 --seed 7
+        run: >-
+          python -m next_best_action --project-root . --customers 500 --seed 7
+          --output-dir artifacts/ci-smoke
       - name: Versioned-input integration test
         run: >-
           python -m next_best_action --project-root .
           --input-dir data/fixtures/upstream-v1
           --output-dir artifacts/external-fixture
+      - name: Verify clean tracked tree
+        run: git diff --exit-code

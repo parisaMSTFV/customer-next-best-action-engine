@@ -12,7 +12,7 @@ The committed `data/fixtures/upstream-v1/` bundle is an illustrative integration
 
 Every customer, score, offer, constraint, cost, and outcome in the committed benchmark is generated from scratch by `src/next_best_action/simulation.py`.
 
-The project does not copy row-level data from the upstream portfolio repositories. Those repositories were built with separate synthetic customer universes, so joining their customer IDs would create a false integration. Instead, this project creates one new customer universe and reproduces compatible score contracts for segmentation, CLV, churn timing, next-purchase relevance, and treatment uplift.
+The project does not copy row-level data from the upstream portfolio repositories. Their public evidence uses separate synthetic or licensed public datasets and does not share a joinable customer universe, so joining customer IDs would create a false integration. Instead, this project creates one new customer universe and reproduces compatible score contracts for segmentation, CLV, churn timing, next-purchase relevance, and treatment uplift.
 
 ### What is generated
 
@@ -27,7 +27,7 @@ The project does not copy row-level data from the upstream portfolio repositorie
 
 ### Evaluation boundary
 
-`evaluator_truth.csv` contains hidden synthetic action effects used to calculate oracle value and policy regret. It is never merged into the deployable decision frame and is written only under `data/generated/`, which is excluded from version control.
+`evaluator_truth.csv` contains hidden synthetic action effects used to calculate constrained-oracle value and policy regret. It is never merged into the deployable decision frame or candidate table. Evaluator values are joined only after deployable policy selection. The file is written only under `data/generated/`, which is excluded from version control.
 
 A leakage test mutates the hidden truth and confirms that the selected deployable policy does not change.
 

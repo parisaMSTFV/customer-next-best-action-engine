@@ -4,28 +4,32 @@ import pandas as pd
 
 from next_best_action.candidates import build_candidates
 from next_best_action.contracts import build_decision_frame
+from next_best_action.evaluation import add_evaluator_values
 from next_best_action.policy import optimize_policy
 from next_best_action.timing import add_timing_status
 
 
 def test_hidden_truth_cannot_change_deployable_policy(small_setup):
     policy, offers, bundle, frame = small_setup
-    candidates = build_candidates(frame, policy, offers, evaluator_truth=bundle.evaluator_truth)
+    candidates = build_candidates(frame, policy, offers)
+    assert not any(column.startswith("true_") for column in candidates.columns)
     selected = optimize_policy(candidates, policy)[["customer_id", "action"]].sort_values(
         "customer_id"
     )
+    evaluated = add_evaluator_values(
+        optimize_policy(candidates, policy),
+        bundle.evaluator_truth,
+        offers,
+    )
+    assert {"true_uplift", "effective_true_uplift", "true_net_value"}.issubset(evaluated)
 
     mutated_truth = bundle.evaluator_truth.copy()
     truth_columns = [column for column in mutated_truth if column.startswith("true_uplift_")]
     mutated_truth.loc[:, truth_columns] = mutated_truth[truth_columns] * -10
     mutated_bundle = replace(bundle, evaluator_truth=mutated_truth)
     deployable = add_timing_status(build_decision_frame(mutated_bundle), policy)
-    mutated_candidates = build_candidates(
-        deployable,
-        policy,
-        offers,
-        evaluator_truth=mutated_bundle.evaluator_truth,
-    )
+    mutated_candidates = build_candidates(deployable, policy, offers)
+    assert not any(column.startswith("true_") for column in mutated_candidates.columns)
     mutated_selected = optimize_policy(mutated_candidates, policy)[
         ["customer_id", "action"]
     ].sort_values("customer_id")

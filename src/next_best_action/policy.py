@@ -20,7 +20,9 @@ def optimize_policy(
     if value_column not in candidates:
         raise ValueError(f"Missing objective column: {value_column}")
 
-    working = candidates.reset_index(drop=True).copy()
+    working = candidates.loc[candidates[value_column] > 1e-12].reset_index(drop=True).copy()
+    if working.empty:
+        return candidates.iloc[0:0].copy()
     n_vars = len(working)
     customer_groups = working.groupby("customer_id", sort=False).indices
     channel_capacity = policy["portfolio"]["channel_capacity"]

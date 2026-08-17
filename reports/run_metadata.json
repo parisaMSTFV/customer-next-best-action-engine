@@ -1,9 +1,11 @@
 {
-  "act_now_customers": 1331,
+  "act_now_customers": 1349,
   "all_constraints_pass": true,
+  "all_eligibility_guardrails_pass": true,
+  "all_portfolio_constraints_pass": true,
   "all_sensitivity_constraints_pass": true,
   "base_assignment_change_rate": 0.0,
-  "candidates": 2683,
+  "candidates": 2685,
   "customers": 3000,
   "deployable_frame_fingerprint": "d040ac55c08c889e",
   "engine_contacts": 700,

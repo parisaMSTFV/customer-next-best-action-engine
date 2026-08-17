@@ -13,7 +13,10 @@ CANDIDATE_COLUMNS = [
     "recommended_category",
     "category_probability",
     "predicted_uplift",
+    "effective_predicted_uplift",
     "predicted_treated_probability",
+    "expected_order_value",
+    "expected_order_margin",
     "expected_cost",
     "predicted_net_value",
     "churn_probability",
@@ -31,17 +34,21 @@ def _resolved_channel(row: pd.Series, action: str) -> str:
     return str(row["preferred_owned_channel"])
 
 
+def _has_channel_consent(row: pd.Series, channel: str) -> bool:
+    consent_column = {
+        "email": "email_consent",
+        "push": "push_consent",
+        "call": "call_consent",
+    }.get(channel)
+    return bool(consent_column and row[consent_column])
+
+
 def build_candidates(
     frame: pd.DataFrame,
     policy: dict[str, Any],
     offer_config: dict[str, Any],
-    evaluator_truth: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """Create economically comparable customer-action candidates."""
-    truth = None
-    if evaluator_truth is not None:
-        truth = evaluator_truth.set_index("customer_id")
-
     rows: list[dict[str, float | str | bool]] = []
     service_cfg = policy["service_call"]
     suppress_uncertain_service = bool(
@@ -54,9 +61,9 @@ def build_candidates(
             channel = _resolved_channel(customer, action)
             if channel == "none":
                 continue
+            if not _has_channel_consent(customer, channel):
+                continue
             if action == "service_call":
-                if not bool(customer["call_consent"]):
-                    continue
                 if str(customer["service_tier"]) not in set(service_cfg["eligible_tiers"]):
                     continue
                 if customer["churn_probability"] < float(service_cfg["minimum_churn_probability"]):
@@ -68,13 +75,14 @@ def build_candidates(
             uplift = float(customer[f"uplift_{action}"])
             baseline_probability = float(customer["purchase_readiness_30d"])
             treated_probability = float(np.clip(baseline_probability + uplift, 0, 1))
+            effective_uplift = treated_probability - baseline_probability
             discount_rate = float(offer["discount_rate"])
             contact_cost = float(offer["fixed_action_cost"]) + float(channel_cost[channel])
             expected_subsidy = (
                 treated_probability * discount_rate * float(customer["expected_order_value"])
             )
             expected_cost = contact_cost + expected_subsidy
-            gross_incremental_margin = uplift * float(customer["expected_order_margin"])
+            gross_incremental_margin = effective_uplift * float(customer["expected_order_margin"])
             predicted_net_value = gross_incremental_margin - expected_cost
 
             if expected_cost > float(customer["investment_ceiling"]) + 1e-12:
@@ -87,7 +95,10 @@ def build_candidates(
                 "recommended_category": str(customer["recommended_category"]),
                 "category_probability": float(customer["category_probability"]),
                 "predicted_uplift": uplift,
+                "effective_predicted_uplift": effective_uplift,
                 "predicted_treated_probability": treated_probability,
+                "expected_order_value": float(customer["expected_order_value"]),
+                "expected_order_margin": float(customer["expected_order_margin"]),
                 "expected_cost": expected_cost,
                 "predicted_net_value": predicted_net_value,
                 "churn_probability": float(customer["churn_probability"]),
@@ -98,27 +109,8 @@ def build_candidates(
                 "service_tier": str(customer["service_tier"]),
             }
 
-            if truth is not None:
-                truth_row = truth.loc[str(customer["customer_id"])]
-                true_uplift = float(truth_row[f"true_uplift_{action}"])
-                true_treated_probability = float(np.clip(baseline_probability + true_uplift, 0, 1))
-                true_subsidy = (
-                    true_treated_probability
-                    * discount_rate
-                    * float(customer["expected_order_value"])
-                )
-                true_net_value = (
-                    true_uplift * float(customer["expected_order_margin"])
-                    - contact_cost
-                    - true_subsidy
-                )
-                row["true_net_value"] = true_net_value
-                row["true_uplift"] = true_uplift
             rows.append(row)
 
     if not rows:
-        columns = CANDIDATE_COLUMNS.copy()
-        if evaluator_truth is not None:
-            columns.extend(["true_net_value", "true_uplift"])
-        return pd.DataFrame(columns=columns)
+        return pd.DataFrame(columns=CANDIDATE_COLUMNS)
     return pd.DataFrame(rows)

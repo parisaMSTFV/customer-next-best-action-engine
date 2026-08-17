@@ -46,22 +46,22 @@ The final engine is compared with:
 
 - do nothing;
 - churn-risk-only reminder targeting;
-- uplift-ranked reminder-only targeting;
+- a reminder-only economic optimizer;
 - CLV-first 5% voucher targeting;
 - purchase-readiness 5% voucher targeting;
 - segment-rule targeting;
-- a synthetic oracle that can see hidden counterfactual truth.
+- a constrained synthetic oracle that sees hidden counterfactual truth only within the deployable candidate set.
 
-The oracle is evaluation-only and cannot influence the deployable policy.
+The constrained oracle is evaluation-only and cannot influence the deployable policy.
 
 ## Primary evaluation metric
 
-Synthetic true incremental net value under hidden counterfactual truth.
+Simulator-known incremental net value under hidden synthetic counterfactual truth.
 
 Secondary metrics:
 
 - value per contact;
-- regret versus the synthetic oracle;
+- regret versus the constrained synthetic oracle;
 - budget used;
 - channel utilization;
 - contact rate and no-action rate;
@@ -75,7 +75,7 @@ The project is complete when:
 - all policies are evaluated under the same constraints;
 - the engine is compared with strong non-oracle baselines;
 - the optimizer can choose no action;
-- all configured constraints pass;
+- all configured portfolio constraints and customer eligibility guardrails pass;
 - results are reproducible from a fixed seed;
 - public files pass the sensitive-content scan;
 - CI runs lint, tests, safety checks, and a smoke pipeline.

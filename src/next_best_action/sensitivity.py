@@ -7,7 +7,11 @@ from typing import Any
 import pandas as pd
 
 from next_best_action.candidates import build_candidates
-from next_best_action.evaluation import constraint_summary
+from next_best_action.evaluation import (
+    add_evaluator_values,
+    constraint_summary,
+    eligibility_summary,
+)
 from next_best_action.policy import optimize_policy
 
 
@@ -113,12 +117,7 @@ def run_sensitivity(
         offers,
         base_scenario,
     )
-    base_candidates = build_candidates(
-        base_frame,
-        base_policy,
-        base_offers,
-        evaluator_truth=evaluator_truth,
-    )
+    base_candidates = build_candidates(base_frame, base_policy, base_offers)
     base_assignments = optimize_policy(base_candidates, base_policy)
 
     result_cache: dict[tuple[float, float, float, float], tuple[pd.DataFrame, ...]] = {}
@@ -139,27 +138,45 @@ def run_sensitivity(
                 offers,
                 scenario,
             )
-            candidates = build_candidates(
-                scenario_frame,
-                scenario_policy,
-                scenario_offers,
-                evaluator_truth=evaluator_truth,
-            )
+            candidates = build_candidates(scenario_frame, scenario_policy, scenario_offers)
             engine = optimize_policy(candidates, scenario_policy)
             reminder = optimize_policy(
                 candidates.loc[candidates["action"] == "reminder"], scenario_policy
             )
-            oracle = optimize_policy(candidates, scenario_policy, value_column="true_net_value")
+            evaluated_candidates = add_evaluator_values(
+                candidates,
+                evaluator_truth,
+                scenario_offers,
+            )
+            evaluated_engine = add_evaluator_values(
+                engine,
+                evaluator_truth,
+                scenario_offers,
+            )
+            evaluated_reminder = add_evaluator_values(
+                reminder,
+                evaluator_truth,
+                scenario_offers,
+            )
+            oracle = optimize_policy(
+                evaluated_candidates,
+                scenario_policy,
+                value_column="true_net_value",
+            )
             constraints = constraint_summary(engine, scenario_policy)
+            eligibility = eligibility_summary(engine, scenario_frame, scenario_policy)
             result_cache[cache_key] = (
                 scenario_policy,
-                engine,
-                reminder,
+                evaluated_engine,
+                evaluated_reminder,
                 oracle,
                 constraints,
+                eligibility,
             )
 
-        scenario_policy, engine, reminder, oracle, constraints = result_cache[cache_key]
+        scenario_policy, engine, reminder, oracle, constraints, eligibility = result_cache[
+            cache_key
+        ]
         engine_true_value = float(engine["true_net_value"].sum())
         reminder_true_value = float(reminder["true_net_value"].sum())
         oracle_true_value = float(oracle["true_net_value"].sum())
@@ -194,7 +211,9 @@ def run_sensitivity(
                     engine,
                     frame["customer_id"],
                 ),
-                "all_constraints_pass": bool(constraints["within_limit"].all()),
+                "all_constraints_pass": bool(
+                    constraints["within_limit"].all() and eligibility["within_limit"].all()
+                ),
             }
         )
         counts = engine["action"].value_counts()

@@ -1,0 +1,6 @@
+guardrail,violations,limit,within_limit
+channel_consent,0,0,True
+act_now_timing,0,0,True
+investment_ceiling,0,0,True
+positive_predicted_value,0,0,True
+service_call_eligibility,0,0,True

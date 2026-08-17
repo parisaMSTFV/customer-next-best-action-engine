@@ -1,37 +1,52 @@
 # Customer Next Best Action Engine
 
+[![CI](https://github.com/parisaMSTFV/customer-next-best-action-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/parisaMSTFV/customer-next-best-action-engine/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12-3776AB)](https://www.python.org/)
 [![Input](https://img.shields.io/badge/input-versioned%20upstream%20contract-0F766E)](docs/UPSTREAM_CONTRACTS.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-16324F.svg)](LICENSE)
 
-Turn customer value, churn timing, purchase readiness, category relevance, treatment uplift, and offer economics into one constrained action policy. The engine accepts versioned upstream score artifacts, verifies their checksums and customer keys, and decides who should receive which action now—or no action.
+Turn customer value, churn timing, purchase readiness, category relevance, treatment uplift, and offer economics into one constrained action policy. The engine validates versioned artifacts that conform to a harmonized input contract, then decides who should receive which action now—or no action—under budget, consent, contact-frequency, and channel constraints.
 
-## Decision snapshot
+## Controlled synthetic benchmark
 
-| Committed benchmark | Result |
+These results come from a fixed synthetic run with seed `42`. They demonstrate policy mechanics under controlled assumptions, not expected production impact.
+
+| Committed synthetic run | Result |
 |---|---:|
-| Customers scored | 3,000 |
-| Customers selected | 700 |
-| Incremental net value vs strongest non-oracle baseline | +15.4% |
-| Regret vs synthetic oracle | 5.6% |
-| Constraint violations | 0 |
+| Customers evaluated | 3,000 |
+| Customers assigned an active action | 700 |
+| Simulator-known incremental net value vs strongest non-oracle baseline | +15.4% |
+| Regret vs evaluation-only constrained synthetic oracle | 5.6% |
+| Configured portfolio-constraint violations | 0 |
+| Customer eligibility-guardrail violations | 0 |
 
 ![Policy value comparison](reports/figures/policy_value_comparison.png)
 
-The table is a controlled synthetic benchmark. External-input runs deliberately report predicted policy value and constraints—not synthetic oracle metrics or causal impact claims.
+External-input runs deliberately report predicted policy value and guardrail status—not synthetic oracle metrics or causal impact claims.
 
 ## Run it
 
-Validate the real integration boundary with the committed eight-customer contract fixture:
+Install the project once:
 
 ```bash
 python -m pip install -e ".[dev]"
+```
+
+Validate the executable input boundary with the committed eight-customer contract fixture:
+
+```bash
 next-best-action --project-root . \
   --input-dir data/fixtures/upstream-v1 \
   --output-dir artifacts/external-run
 ```
 
-The output contains a full customer decision file, source versions, checksums, constraint utilization, action allocation, and a predicted-value comparison. See [Upstream Contracts](docs/UPSTREAM_CONTRACTS.md) before mapping model exports.
+Reproduce the 3,000-customer synthetic benchmark and headline metrics:
+
+```bash
+make run
+```
+
+The external output contains a full customer decision file, source versions, checksums, portfolio-constraint utilization, a customer eligibility audit, action allocation, and a predicted-value comparison. See [Upstream Contracts](docs/UPSTREAM_CONTRACTS.md) before mapping model exports.
 
 ## The decision
 
@@ -47,7 +62,7 @@ The final decision can explicitly be **no action**. A high churn score, high CLV
 
 ## Why this is an orchestration project
 
-The portfolio already contains separate systems for customer segmentation, CLV, churn timing, next-purchase recommendation, causal treatment uplift, and constrained resource allocation. Those projects answer different statistical questions and use separate synthetic customer universes.
+The portfolio already contains separate systems for customer segmentation, CLV, churn timing, next-purchase recommendation, causal treatment uplift, and constrained resource allocation. Those projects answer different statistical questions. Their public evidence uses separate synthetic or licensed public datasets, so they do not share a joinable customer universe.
 
 This repository therefore separates two paths: a versioned artifact loader for integration and a clean-room synthetic benchmark for counterfactual evaluation. It never joins unrelated customer IDs across portfolio demos.
 
@@ -79,8 +94,11 @@ For each eligible customer-action pair:
 predicted_treated_probability
     = clip(purchase_readiness_30d + predicted_uplift, 0, 1)
 
+effective_predicted_uplift
+    = predicted_treated_probability - purchase_readiness_30d
+
 gross_incremental_margin
-    = predicted_uplift * expected_order_margin
+    = effective_predicted_uplift * expected_order_margin
 
 expected_action_cost
     = fixed_action_cost
@@ -112,16 +130,16 @@ No action is always feasible, so the optimizer is never forced to spend budget o
 
 The committed run uses seed `42` and 3,000 synthetic customers. Hidden counterfactual action values are retained only by the evaluator; the deployable policy cannot access them.
 
-| Policy | Customers contacted | Synthetic true incremental net value | Regret vs oracle |
+| Policy | Customers contacted | Simulator-known incremental net value | Regret vs constrained oracle |
 |---|---:|---:|---:|
 | Do nothing | 0 | 0.00 | 100.0% |
 | Risk-only reminder | 670 | 981.51 | 25.8% |
-| Uplift-ranked reminder only | 670 | **1,081.82** | 18.2% |
+| Reminder-only economic optimizer | 670 | **1,081.82** | 18.2% |
 | Segment rules | 392 | 355.74 | 73.1% |
 | **Next Best Action Engine** | **700** | **1,248.04** | **5.6%** |
-| Synthetic oracle | 700 | 1,322.06 | 0.0% |
+| Constrained synthetic oracle | 700 | 1,322.06 | 0.0% |
 
-The engine produced **15.4% more synthetic true incremental net value than the strongest non-oracle baseline**, the uplift-ranked reminder-only policy. This result is specific to the synthetic generator and fixed configuration.
+The engine produced **15.4% more simulator-known incremental net value than the strongest non-oracle baseline**, the reminder-only economic optimizer. This result is specific to the synthetic generator and fixed configuration.
 
 ### Selected action mix
 
@@ -147,7 +165,7 @@ The low voucher count is intentional rather than a reporting defect: under the c
 | Call capacity | 30 | 30 |
 | Duplicate active actions per customer | 0 | 0 |
 
-All configured constraints passed in the committed run.
+All five configured portfolio constraints and all five customer eligibility guardrails passed in the committed run. The separate [eligibility audit](reports/eligibility_audit.csv) verifies channel consent, action timing, investment ceilings, positive predicted value, and service-call eligibility after optimization.
 
 ## Policy sensitivity and stress tests
 
@@ -211,9 +229,9 @@ Reason codes describe the policy path; they are not causal explanations of an in
 
 ## Evaluation boundary
 
-The synthetic generator creates hidden action effects for reminder, voucher, and service-call candidates. These fields are kept in a separate evaluator table and never merged into the deployable decision frame.
+The synthetic generator creates hidden action effects for reminder, voucher, and service-call candidates. These fields are kept in a separate evaluator table and never merged into the deployable decision frame or candidate table.
 
-A dedicated leakage test changes the hidden counterfactual truth and verifies that the selected deployable policy does not change. The synthetic oracle can see the hidden values only after policy selection and exists to quantify regret.
+A dedicated leakage test verifies that deployable candidates contain no `true_*` fields and that changing hidden counterfactual truth cannot change the selected policy. Evaluator truth is joined only after deployable policy selection. The constrained synthetic oracle operates separately within the deployable candidate set to quantify regret.
 
 ## Repository structure
 
@@ -274,6 +292,7 @@ truth remains excluded.
 - [Data Provenance](DATA_PROVENANCE.md)
 - [Reproducible Run Summary](reports/run_summary.md)
 - [Policy Comparison](reports/policy_comparison.csv)
+- [Customer Eligibility Audit](reports/eligibility_audit.csv)
 - [Policy Sensitivity Summary](reports/sensitivity_summary.md)
 - [Sensitivity Scenario Table](reports/sensitivity_summary.csv)
 - [Decision Sample](reports/decision_sample.csv)
@@ -281,7 +300,7 @@ truth remains excluded.
 ## Limitations
 
 - The committed benchmark behavior, treatment effects, and outcome metrics are synthetic.
-- External mode consumes standardized exports; it does not run or retrain upstream model packages.
+- External mode consumes exports that conform to the harmonized contract; it does not run or retrain upstream model packages.
 - Treatment definitions are assumed stable and customer interference is absent.
 - Voucher economics simplify redemption, returns, supplier funding, tax, and long-term incentive habituation.
 - Sensitivity scenarios vary selected assumptions on fixed grids; they are not probability-weighted forecasts or confidence intervals.
