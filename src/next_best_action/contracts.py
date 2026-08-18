@@ -132,6 +132,16 @@ def validate_bundle(bundle: Any) -> None:
             )
             if invalid_channels:
                 raise ValueError(f"customer_state contains invalid channels: {invalid_channels}")
+            inconsistent_email = (frame["preferred_owned_channel"] == "email") & ~frame[
+                "email_consent"
+            ]
+            inconsistent_push = (frame["preferred_owned_channel"] == "push") & ~frame[
+                "push_consent"
+            ]
+            if inconsistent_email.any() or inconsistent_push.any():
+                raise ValueError(
+                    "customer_state preferred_owned_channel requires matching channel consent"
+                )
         if name == "clv_scores":
             if (frame["clv_lower_80"] > frame["predicted_clv_180d"]).any() or (
                 frame["predicted_clv_180d"] > frame["clv_upper_80"]

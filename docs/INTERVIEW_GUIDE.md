@@ -4,7 +4,7 @@
 
 The earlier portfolio projects answer separate customer questions: who the customer is, how valuable they may be, whether they are nearing a personalized churn window, what they are likely to buy next, and whether a treatment changes behavior. This project creates one synthetic customer universe with compatible score contracts and turns those signals into a single operating policy.
 
-For every customer, the engine first decides whether this is an appropriate time to act. It then compares eligible reminder, voucher, and service-call candidates on expected incremental net value, applies a CLV-based investment ceiling, and solves the final assignment under shared budget and channel capacity. No action is a valid result. Hidden synthetic counterfactual truth is used only after selection to evaluate policy value and regret against an oracle.
+For every customer, the engine first decides whether this is an appropriate time to act. It then compares eligible reminder, voucher, and service-call candidates on expected incremental net value, applies consent and CLV-based investment guardrails, and solves the final assignment under shared budget and channel capacity. No action is a valid result. Hidden synthetic counterfactual truth is joined only after selection to evaluate policy value and regret against a constrained oracle.
 
 ## Why not train one large model?
 
@@ -24,7 +24,19 @@ The action objective is short-horizon incremental value. CLV is a longer-horizon
 
 ## Why keep an oracle?
 
-Synthetic data lets the generator retain counterfactual truth. The oracle shows the best possible policy under the same constraints and makes regret measurable. It is evaluation-only; a leakage test confirms that changing oracle truth cannot change the deployable policy.
+Synthetic data lets the generator retain counterfactual truth. The constrained oracle shows the best possible policy within the deployable candidate set under the same portfolio limits and makes regret measurable. It is evaluation-only: deployable candidate tables contain no `true_*` columns, and changing evaluator truth cannot change the selected policy.
+
+## Where do 15.4% and 5.6% come from?
+
+In the fixed seed-42 simulation, the engine produced 1,248.04 simulator-known incremental net value versus 1,081.82 for the strongest non-oracle baseline, a 15.4% improvement. The constrained synthetic oracle produced 1,322.06, so the engine's regret within that feasible candidate set was 5.6%. These are simulator results, not observed business impact.
+
+## What does zero violations cover?
+
+It covers five configured portfolio constraints—budget, three channel capacities, and one action per customer—plus a separate five-item eligibility audit for consent, timing, investment ceiling, positive predicted value, and service-call eligibility.
+
+## What is actually integrated?
+
+The executable fixture proves that six versioned artifacts can conform to one harmonized input contract. It does not claim that the standalone public repositories share customer IDs or already emit these exact files without adapters.
 
 ## What changes in production?
 

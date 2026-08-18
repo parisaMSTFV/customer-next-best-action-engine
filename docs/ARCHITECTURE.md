@@ -18,11 +18,11 @@ flowchart TD
 - `inputs.py`: manifest, checksum, path, and external-artifact loading.
 - `contracts.py`: schema, value, key, and leakage-boundary validation.
 - `timing.py`: contact-frequency and personalized purchase-window routing.
-- `candidates.py`: eligible customer-action rows and comparable economics.
+- `candidates.py`: deployable customer-action rows, channel-consent checks, and comparable economics; no evaluator-truth fields are accepted.
 - `policy.py`: mixed-integer portfolio optimization and constrained greedy baselines.
 - `baselines.py`: non-oracle comparison policies.
 - `explain.py`: one-row-per-customer decision output and reason codes.
-- `evaluation.py`: policy value and constraint checks.
+- `evaluation.py`: post-selection evaluator joins, constrained-oracle value, portfolio constraints, and customer eligibility audits.
 - `reporting.py`: reproducible reports and figures.
 - `pipeline.py`: end-to-end orchestration.
 

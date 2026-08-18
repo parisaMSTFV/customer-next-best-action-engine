@@ -19,7 +19,7 @@ def add_timing_status(frame: pd.DataFrame, policy: dict[str, Any]) -> pd.DataFra
     suppressed = (
         (result["days_since_last_contact"] < int(cfg["minimum_days_between_contacts"]))
         | (result["contact_count_30d"] >= int(cfg["max_contacts_30d"]))
-        | (result["preferred_owned_channel"] == "none")
+        | ((result["preferred_owned_channel"] == "none") & ~result["call_consent"])
     )
     act_now = (
         (result["window_progress"] >= float(cfg["act_now_window_progress"]))

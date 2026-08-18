@@ -1,6 +1,6 @@
 # Upstream Contracts
 
-The engine consumes six standardized CSV artifacts through contract version `1.0`. A JSON manifest records each file's producer, artifact version, relative path, and SHA-256 checksum. The loader rejects missing files, changed bytes, unsupported contracts, duplicate or mismatched customer keys, invalid booleans, out-of-range probabilities, and inconsistent score dates before policy logic runs.
+The engine consumes six standardized CSV artifacts through contract version `1.0`. A JSON manifest records each file's producer, artifact version, relative path, and SHA-256 checksum. The loader rejects missing files, changed bytes, unsupported contracts, duplicate or mismatched customer keys, invalid booleans, out-of-range probabilities, inconsistent score dates, and preferred email or push channels without matching consent before policy logic runs.
 
 This is a file boundary, not a package dependency: upstream systems export governed scores, while this repository owns action economics, guardrails, and portfolio optimization. The committed fixture demonstrates the executable boundary; it does not claim that independently generated demo customer IDs can be joined.
 
@@ -49,7 +49,7 @@ next-best-action --project-root . \
   --output-dir artifacts/external-run
 ```
 
-External mode never expects `evaluator_truth.csv`. It writes `decisions.csv`, constraint utilization, action allocation, source-version metadata, and predicted policy comparisons. Observed incremental value still requires a randomized holdout.
+External mode never expects `evaluator_truth.csv`. It writes spreadsheet-safe `decisions.csv`, portfolio-constraint utilization, a post-solve eligibility audit, action allocation, source-version metadata, and predicted policy comparisons. Observed incremental value still requires a randomized holdout.
 
 ## Why the contracts are harmonized
 

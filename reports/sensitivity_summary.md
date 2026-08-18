@@ -5,8 +5,8 @@
 ## Base operating point
 
 - Contacts: **700**
-- Synthetic true incremental net value: **1,248.04**
-- Regret versus synthetic oracle: **5.6%**
+- Simulator-known incremental net value: **1,248.04**
+- Regret versus constrained synthetic oracle: **5.6%**
 
 ## Constraint sensitivity
 
@@ -18,7 +18,7 @@
 - Low-margin / high-subsidy value: **971.50**.
 - High-margin / low-subsidy value: **1,560.30**.
 - Largest assignment change: **9.8%** in `capacity_0.6`.
-- All scenario constraints passed: **True**.
+- All scenario portfolio constraints and eligibility guardrails passed: **True**.
 
 ## Interpretation boundary
 

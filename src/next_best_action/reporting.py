@@ -7,6 +7,22 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+FORMULA_PREFIXES = ("=", "+", "-", "@")
+
+
+def spreadsheet_safe(frame: pd.DataFrame) -> pd.DataFrame:
+    """Neutralize formula-prefixed text before writing spreadsheet-facing CSVs."""
+    safe = frame.copy()
+    for column in safe.select_dtypes(include=["object", "string"]).columns:
+        safe[column] = safe[column].map(
+            lambda value: (
+                f"'{value}"
+                if isinstance(value, str) and value.startswith(FORMULA_PREFIXES)
+                else value
+            )
+        )
+    return safe
+
 
 def write_operational_reports(
     output_dir: str | Path,
@@ -14,6 +30,7 @@ def write_operational_reports(
     engine_assignments: pd.DataFrame,
     decisions: pd.DataFrame,
     constraints: pd.DataFrame,
+    eligibility: pd.DataFrame,
     run_metadata: dict[str, object],
 ) -> None:
     """Write deployable outputs without requiring hidden counterfactual truth."""
@@ -22,9 +39,12 @@ def write_operational_reports(
     reports.mkdir(parents=True, exist_ok=True)
     figures.mkdir(parents=True, exist_ok=True)
 
-    policy_comparison.to_csv(reports / "predicted_policy_comparison.csv", index=False)
-    constraints.to_csv(reports / "constraint_summary.csv", index=False)
-    decisions.to_csv(reports / "decisions.csv", index=False)
+    spreadsheet_safe(policy_comparison).to_csv(
+        reports / "predicted_policy_comparison.csv", index=False
+    )
+    spreadsheet_safe(constraints).to_csv(reports / "constraint_summary.csv", index=False)
+    spreadsheet_safe(eligibility).to_csv(reports / "eligibility_audit.csv", index=False)
+    spreadsheet_safe(decisions).to_csv(reports / "decisions.csv", index=False)
     allocation = (
         engine_assignments.groupby(["action", "channel"], observed=True)
         .agg(
@@ -34,13 +54,14 @@ def write_operational_reports(
         )
         .reset_index()
     )
-    allocation.to_csv(reports / "action_allocation.csv", index=False)
+    spreadsheet_safe(allocation).to_csv(reports / "action_allocation.csv", index=False)
     with (reports / "run_metadata.json").open("w", encoding="utf-8") as handle:
         json.dump(run_metadata, handle, indent=2, sort_keys=True)
     _write_operational_summary(
         reports / "run_summary.md",
         policy_comparison,
         constraints,
+        eligibility,
         run_metadata,
     )
     _plot_predicted_policy_value(
@@ -56,6 +77,7 @@ def write_reports(
     engine_assignments: pd.DataFrame,
     decisions: pd.DataFrame,
     constraints: pd.DataFrame,
+    eligibility: pd.DataFrame,
     sensitivity_summary: pd.DataFrame,
     sensitivity_allocation: pd.DataFrame,
     run_metadata: dict[str, object],
@@ -66,18 +88,26 @@ def write_reports(
     reports.mkdir(parents=True, exist_ok=True)
     figures.mkdir(parents=True, exist_ok=True)
 
-    policy_comparison.to_csv(reports / "policy_comparison.csv", index=False)
-    constraints.to_csv(reports / "constraint_summary.csv", index=False)
-    sensitivity_summary.to_csv(reports / "sensitivity_summary.csv", index=False)
-    sensitivity_allocation.to_csv(reports / "sensitivity_action_mix.csv", index=False)
-    engine_assignments.groupby(["action", "channel"], observed=True).agg(
-        customers=("customer_id", "size"),
-        predicted_net_value=("predicted_net_value", "sum"),
-        expected_cost=("expected_cost", "sum"),
-    ).reset_index().to_csv(reports / "action_allocation.csv", index=False)
+    spreadsheet_safe(policy_comparison).to_csv(reports / "policy_comparison.csv", index=False)
+    spreadsheet_safe(constraints).to_csv(reports / "constraint_summary.csv", index=False)
+    spreadsheet_safe(eligibility).to_csv(reports / "eligibility_audit.csv", index=False)
+    spreadsheet_safe(sensitivity_summary).to_csv(reports / "sensitivity_summary.csv", index=False)
+    spreadsheet_safe(sensitivity_allocation).to_csv(
+        reports / "sensitivity_action_mix.csv", index=False
+    )
+    allocation = (
+        engine_assignments.groupby(["action", "channel"], observed=True)
+        .agg(
+            customers=("customer_id", "size"),
+            predicted_net_value=("predicted_net_value", "sum"),
+            expected_cost=("expected_cost", "sum"),
+        )
+        .reset_index()
+    )
+    spreadsheet_safe(allocation).to_csv(reports / "action_allocation.csv", index=False)
 
     sample = decisions.sort_values("predicted_incremental_net_value", ascending=False).head(40)
-    sample.to_csv(reports / "decision_sample.csv", index=False)
+    spreadsheet_safe(sample).to_csv(reports / "decision_sample.csv", index=False)
     with (reports / "run_metadata.json").open("w", encoding="utf-8") as handle:
         json.dump(run_metadata, handle, indent=2, sort_keys=True)
     _write_run_summary(reports / "run_summary.md", policy_comparison, run_metadata)
@@ -95,6 +125,7 @@ def _write_operational_summary(
     path: Path,
     comparison: pd.DataFrame,
     constraints: pd.DataFrame,
+    eligibility: pd.DataFrame,
     metadata: dict[str, object],
 ) -> None:
     engine = comparison.loc[comparison["policy"] == "next_best_action_engine"].iloc[0]
@@ -109,7 +140,14 @@ def _write_operational_summary(
         f"- Customers selected: **{int(engine['customers_contacted']):,}**",
         f"- Expected action cost: **{float(engine['budget_used']):,.2f}**",
         f"- Predicted incremental net value: **{float(engine['predicted_net_value']):,.2f}**",
-        f"- All portfolio constraints passed: **{bool(constraints['within_limit'].all())}**",
+        (
+            "- All configured portfolio constraints passed: "
+            f"**{bool(constraints['within_limit'].all())}**"
+        ),
+        (
+            "- All customer eligibility guardrails passed: "
+            f"**{bool(eligibility['within_limit'].all())}**"
+        ),
         "",
         "## Decision comparison",
         "",
@@ -157,10 +195,10 @@ def _plot_sensitivity(frame: pd.DataFrame, path: Path) -> None:
             subset["reminder_baseline_true_net_value"],
             marker="o",
             linestyle="--",
-            label="Reminder baseline",
+            label="Reminder-only economic optimizer",
         )
         axis.set_xlabel(f"{dimension.title()} multiplier")
-        axis.set_ylabel("Synthetic true net value")
+        axis.set_ylabel("Simulator-known net value")
         axis.set_title(title)
         axis.grid(axis="y", alpha=0.25)
         axis.legend(frameon=False, fontsize=8)
@@ -221,8 +259,8 @@ def _write_sensitivity_summary(path: Path, frame: pd.DataFrame) -> None:
         "## Base operating point",
         "",
         f"- Contacts: **{int(base['customers_contacted'])}**",
-        f"- Synthetic true incremental net value: **{base['true_incremental_net_value']:,.2f}**",
-        f"- Regret versus synthetic oracle: **{base['regret_vs_oracle']:.1%}**",
+        (f"- Simulator-known incremental net value: **{base['true_incremental_net_value']:,.2f}**"),
+        (f"- Regret versus constrained synthetic oracle: **{base['regret_vs_oracle']:.1%}**"),
         "",
         "## Constraint sensitivity",
         "",
@@ -245,7 +283,10 @@ def _write_sensitivity_summary(path: Path, frame: pd.DataFrame) -> None:
             f"**{most_changed['assignment_change_rate_vs_base']:.1%}** "
             f"in `{most_changed['scenario_id']}`."
         ),
-        f"- All scenario constraints passed: **{bool(frame['all_constraints_pass'].all())}**.",
+        (
+            "- All scenario portfolio constraints and eligibility guardrails passed: "
+            f"**{bool(frame['all_constraints_pass'].all())}**."
+        ),
         "",
         "## Interpretation boundary",
         "",
@@ -261,12 +302,12 @@ def _plot_policy_value(frame: pd.DataFrame, path: Path) -> None:
     label_map = {
         "do_nothing": "Do nothing",
         "risk_only_reminder": "Risk-only reminder",
-        "uplift_reminder_only": "Uplift reminder only",
+        "reminder_only_economic_optimizer": "Reminder-only economic optimizer",
         "clv_first_voucher": "CLV-first voucher",
         "purchase_readiness_voucher": "Purchase-ready voucher",
         "segment_rules": "Segment rules",
         "next_best_action_engine": "NBA engine",
-        "synthetic_oracle": "Synthetic oracle",
+        "constrained_synthetic_oracle": "Constrained synthetic oracle",
     }
     labels = [label_map.get(value, value) for value in frame["policy"]]
     positions = np.arange(len(values))
@@ -274,7 +315,7 @@ def _plot_policy_value(frame: pd.DataFrame, path: Path) -> None:
     bars = ax.bar(positions, values)
     ax.set_xticks(positions, labels, rotation=25, ha="right")
     ax.bar_label(bars, fmt="%.0f", padding=3, fontsize=8)
-    ax.set_ylabel("Synthetic true incremental net value")
+    ax.set_ylabel("Simulator-known incremental net value")
     ax.set_title("Policy value under hidden synthetic counterfactual truth")
     fig.tight_layout()
     fig.savefig(path, dpi=150)
@@ -323,9 +364,11 @@ def _write_run_summary(
     metadata: dict[str, object],
 ) -> None:
     engine = comparison.loc[comparison["policy"] == "next_best_action_engine"].iloc[0]
-    oracle = comparison.loc[comparison["policy"] == "synthetic_oracle"].iloc[0]
+    oracle = comparison.loc[comparison["policy"] == "constrained_synthetic_oracle"].iloc[0]
     baseline_rows = comparison.loc[
-        ~comparison["policy"].isin(["do_nothing", "next_best_action_engine", "synthetic_oracle"])
+        ~comparison["policy"].isin(
+            ["do_nothing", "next_best_action_engine", "constrained_synthetic_oracle"]
+        )
     ]
     best_baseline = baseline_rows.sort_values("true_incremental_net_value", ascending=False).iloc[0]
     baseline_value = float(best_baseline["true_incremental_net_value"])
@@ -343,18 +386,27 @@ def _write_run_summary(
         f"- Seed: `{metadata['seed']}`",
         f"- Customers: `{metadata['customers']}`",
         f"- Engine contacts: `{int(engine['customers_contacted'])}`",
-        f"- Engine synthetic true incremental net value: **{engine_value:,.2f}**",
+        f"- Engine simulator-known incremental net value: **{engine_value:,.2f}**",
         (
             f"- Strongest non-oracle baseline: `{best_baseline['policy']}` "
             f"at **{baseline_value:,.2f}**"
         ),
         f"- Improvement over strongest baseline: **{improvement:.1%}**",
-        f"- Regret versus synthetic oracle: **{float(engine['regret_vs_oracle']):.1%}**",
-        f"- Synthetic oracle value: **{float(oracle['true_incremental_net_value']):,.2f}**",
-        f"- All configured portfolio constraints passed: **{metadata['all_constraints_pass']}**",
+        (
+            "- Regret versus constrained synthetic oracle: "
+            f"**{float(engine['regret_vs_oracle']):.1%}**"
+        ),
+        (
+            "- Constrained synthetic oracle value: "
+            f"**{float(oracle['true_incremental_net_value']):,.2f}**"
+        ),
+        (
+            "- All configured portfolio constraints and customer eligibility "
+            f"guardrails passed: **{metadata['all_constraints_pass']}**"
+        ),
         "",
         (
-            "The oracle uses hidden synthetic action values only for evaluation. "
+            "The constrained oracle uses hidden synthetic action values only for evaluation. "
             "The deployable engine never sees them."
         ),
     ]

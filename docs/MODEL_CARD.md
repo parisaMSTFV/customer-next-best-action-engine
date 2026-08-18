@@ -22,7 +22,7 @@ Protected characteristics are not generated or used.
 
 ## Evaluation
 
-A hidden evaluator table contains the synthetic counterfactual action effects. It is used only after policy selection to calculate true synthetic policy value, oracle value, and regret.
+A hidden evaluator table contains the synthetic counterfactual action effects. Deployable candidate tables contain no evaluator fields. Truth is joined only after policy selection to calculate simulator-known policy value, constrained-oracle value, and regret.
 
 The deployable optimizer maximizes predicted incremental net value and cannot access hidden truth.
 

@@ -2,7 +2,7 @@
 
 ## 1. Timing
 
-A customer is suppressed when the configured contact-frequency or consent guardrail fails.
+A customer is suppressed when the configured contact-frequency guardrail fails or no consented owned or call channel is available. Preferred email and push channels must have matching consent in the input contract and are checked again during candidate creation.
 
 Otherwise, timing uses the personalized purchase window together with purchase readiness and churn probability to route the customer to:
 
@@ -32,8 +32,10 @@ For customer `i` and action `a`, the engine calculates:
 ```text
 predicted_treated_probability = clip(purchase_readiness_30d + predicted_uplift, 0, 1)
 
+effective_predicted_uplift = predicted_treated_probability - purchase_readiness_30d
+
 gross_incremental_margin
-    = predicted_uplift * expected_order_margin
+    = effective_predicted_uplift * expected_order_margin
 
 expected_action_cost
     = fixed_action_cost
@@ -59,6 +61,8 @@ The mixed-integer policy maximizes total predicted incremental net value subject
 
 No action is always feasible. The optimizer is never required to spend budget or fill capacity with a negative-value action.
 
+After optimization, a separate eligibility audit rechecks channel consent, `act_now` timing, customer investment ceilings, positive predicted value, and service-call eligibility. Any violation fails the run.
+
 ## 5. Reason codes
 
 The deployable decision table records concise reason codes such as:
@@ -82,7 +86,7 @@ subsidy assumptions. Reviewers should inspect three outputs before approving an 
 
 1. predicted and evaluator-only true value versus the matched reminder baseline;
 2. assignment change rate versus the base policy;
-3. budget, channel, and one-action-per-customer constraint status.
+3. budget, channel, one-action-per-customer, and customer eligibility-guardrail status.
 
 The base synthetic run is more sensitive to channel capacity than to additional budget. This is
 configuration-specific evidence, not a general rule about CRM operations. The policy should be

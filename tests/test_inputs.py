@@ -21,8 +21,10 @@ def test_versioned_fixture_runs_without_evaluator_truth(project_root, tmp_path):
     assert metadata["input_mode"] == "external"
     assert metadata["customers"] == 8
     assert metadata["all_constraints_pass"] is True
+    assert metadata["all_eligibility_guardrails_pass"] is True
     assert metadata["engine_contacts"] > 0
     assert (output / "decisions.csv").is_file()
+    assert (output / "eligibility_audit.csv").is_file()
     assert (output / "run_summary.md").is_file()
     assert "true_incremental" not in (output / "run_summary.md").read_text(encoding="utf-8")
 

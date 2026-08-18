@@ -41,3 +41,74 @@ def test_voucher_cost_includes_subsidy_on_all_treated_purchases(project_root):
     assert voucher["predicted_net_value"] == pytest.approx(
         0.10 * 25.0 - expected_subsidy - expected_fixed
     )
+
+
+def test_incremental_margin_uses_effective_uplift_after_probability_clipping(project_root):
+    from next_best_action.config import load_configs
+
+    policy, offers = load_configs(project_root)
+    frame = pd.DataFrame(
+        {
+            "customer_id": ["SYN-2"],
+            "timing_status": ["act_now"],
+            "preferred_owned_channel": ["email"],
+            "email_consent": [True],
+            "push_consent": [False],
+            "call_consent": [False],
+            "service_tier": ["protect"],
+            "high_uncertainty": [False],
+            "churn_probability": [0.8],
+            "purchase_readiness_30d": [0.95],
+            "expected_order_value": [100.0],
+            "expected_order_margin": [25.0],
+            "investment_ceiling": [100.0],
+            "recommended_category": ["Beauty"],
+            "category_probability": [0.8],
+            "predicted_clv_180d": [300.0],
+            "segment_name": ["High value at risk"],
+            "uplift_reminder": [0.20],
+            "uplift_voucher_5": [0.20],
+            "uplift_voucher_10": [0.20],
+            "uplift_service_call": [0.20],
+        }
+    )
+    reminder = (
+        build_candidates(frame, policy, offers)
+        .loc[lambda rows: rows["action"] == "reminder"]
+        .iloc[0]
+    )
+    assert reminder["predicted_treated_probability"] == pytest.approx(1.0)
+    assert reminder["effective_predicted_uplift"] == pytest.approx(0.05)
+    assert reminder["predicted_net_value"] == pytest.approx(0.05 * 25.0 - 0.11)
+
+
+def test_candidate_builder_defends_against_revoked_owned_channel_consent(project_root):
+    from next_best_action.config import load_configs
+
+    policy, offers = load_configs(project_root)
+    frame = pd.DataFrame(
+        {
+            "customer_id": ["SYN-3"],
+            "timing_status": ["act_now"],
+            "preferred_owned_channel": ["email"],
+            "email_consent": [False],
+            "push_consent": [False],
+            "call_consent": [False],
+            "service_tier": ["protect"],
+            "high_uncertainty": [False],
+            "churn_probability": [0.8],
+            "purchase_readiness_30d": [0.5],
+            "expected_order_value": [100.0],
+            "expected_order_margin": [25.0],
+            "investment_ceiling": [100.0],
+            "recommended_category": ["Beauty"],
+            "category_probability": [0.8],
+            "predicted_clv_180d": [300.0],
+            "segment_name": ["High value at risk"],
+            "uplift_reminder": [0.10],
+            "uplift_voucher_5": [0.10],
+            "uplift_voucher_10": [0.10],
+            "uplift_service_call": [0.10],
+        }
+    )
+    assert build_candidates(frame, policy, offers).empty
